@@ -55,7 +55,8 @@ stock float ground_delta_opt(int client, float angles[3], float move[3], float s
 
 	wishspeed = GetVectorLength(wishvel);
 
-	if(wishspeed > GetEntPropFloat(client, Prop_Send, "m_flMaxspeed") && GetEntPropFloat(client, Prop_Send, "m_flMaxspeed") != 0.0) wishspeed = GetEntPropFloat(client, Prop_Send, "m_flMaxspeed");
+	float flMaxSpeed = Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "runspeed");
+	if(wishspeed > flMaxSpeed && flMaxSpeed != 0.0) wishspeed = flMaxSpeed;
 
 	float velocity[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", velocity);

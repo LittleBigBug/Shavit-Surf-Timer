@@ -176,14 +176,7 @@ public void OnPluginStart()
 	gSM_Messages = new StringMap();
 	gB_Protobuf = (GetUserMessageType() == UM_Protobuf);
 
-	if (gB_Protobuf)
-	{
-		HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2_ProtoBuf, true);
-	}
-	else
-	{
-		HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2_BfRead, true);
-	}
+	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
 
 	gH_ChatCookie = RegClientCookie("shavit_chat_selection", "Chat settings", CookieAccess_Protected);
 	gA_ChatRanks = new ArrayList(sizeof(chatranks_cache_t));
@@ -416,7 +409,7 @@ void ReplaceFormats(char[] formatting, int maxlen, char[] name, char[] colon, ch
 	ReplaceString(formatting, maxlen, "{msg}", text);
 }
 
-public Action Hook_SayText2_ProtoBuf(UserMsg msg_id, Protobuf msg, const int[] players, int playersNum, bool reliable, bool init)
+public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	if (!gCV_Enabled.BoolValue)
 	{
@@ -428,37 +421,24 @@ public Action Hook_SayText2_ProtoBuf(UserMsg msg_id, Protobuf msg, const int[] p
 	char sOriginalName[MAXLENGTH_NAME];
 	char sOriginalText[MAXLENGTH_TEXT];
 
-	client = msg.ReadInt("ent_idx");
-	msg.ReadString("msg_name", sMessage, 32);
-	msg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
-	msg.ReadString("params", sOriginalText, MAXLENGTH_TEXT, 1);
-
-	return Hook_SayText2(client, sMessage, sOriginalName, sOriginalText);
-}
-
-public Action Hook_SayText2_BfRead(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
-{
-	if (!gCV_Enabled.BoolValue)
+	if(gB_Protobuf)
 	{
-		return Plugin_Continue;
+		Protobuf pbmsg = view_as<Protobuf>(msg);
+		client = pbmsg.ReadInt("ent_idx");
+		pbmsg.ReadString("msg_name", sMessage, 32);
+		pbmsg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
+		pbmsg.ReadString("params", sOriginalText, MAXLENGTH_TEXT, 1);
+	}
+	else
+	{
+		BfRead bfmsg = view_as<BfRead>(msg);
+		client = bfmsg.ReadByte();
+		bfmsg.ReadByte(); // chat parameter
+		bfmsg.ReadString(sMessage, 32);
+		bfmsg.ReadString(sOriginalName, MAXLENGTH_NAME);
+		bfmsg.ReadString(sOriginalText, MAXLENGTH_TEXT);
 	}
 
-	int client = 0;
-	char sMessage[32];
-	char sOriginalName[MAXLENGTH_NAME];
-	char sOriginalText[MAXLENGTH_TEXT];
-
-	client = msg.ReadByte();
-	msg.ReadByte(); // chat parameter
-	msg.ReadString(sMessage, 32);
-	msg.ReadString(sOriginalName, MAXLENGTH_NAME);
-	msg.ReadString(sOriginalText, MAXLENGTH_TEXT);
-
-	return Hook_SayText2(client, sMessage, sOriginalName, sOriginalText);
-}
-
-Action Hook_SayText2(int client, char sMessage[32], char sOriginalName[MAXLENGTH_NAME], char sOriginalText[MAXLENGTH_TEXT])
-{
 	if(client == 0)
 	{
 		return Plugin_Continue;
@@ -1489,7 +1469,9 @@ void LoadFromDatabase(int client)
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage, ccaccess FROM %schat WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 
+		PrintToServer("TEST1");
 	QueryLog(gH_SQL, SQL_GetChat_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+		PrintToServer("TEST2");
 }
 
 public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1505,6 +1487,7 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 
 	if(client == 0)
 	{
+		PrintToServer("NO CLIENT XD");
 		return;
 	}
 
@@ -1512,9 +1495,11 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 
 	while(results.FetchRow())
 	{
+		PrintToServer("FETCH ROW!!!");
 		gB_CCAccess[client] = view_as<bool>(results.FetchInt(4));
 		results.FetchString(1, gS_CustomName[client], 128);
 		results.FetchString(3, gS_CustomMessage[client], 16);
+		PrintToServer("NAME %s", gS_CustomName[client] );
 	}
 }
 

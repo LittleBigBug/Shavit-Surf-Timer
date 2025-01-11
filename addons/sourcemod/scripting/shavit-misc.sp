@@ -1981,12 +1981,6 @@ bool ShouldDisplayStopWarning(int client)
 	return (!Shavit_IsPracticeMode(client) && gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue && !CanSegment(client));
 }
 
-void DoNoclip(int client)
-{
-	Shavit_StopTimer(client);
-	SetEntityMoveType(client, MOVETYPE_NOCLIP);
-}
-
 void DoEnd(int client)
 {
 	Shavit_GotoEnd(client, gI_LastStopInfo[client]);

@@ -158,6 +158,7 @@ Convar gCV_EnforceTracks = null;
 Convar gCV_BoxOffset = null;
 Convar gCV_ExtraSpawnHeight = null;
 Convar gCV_PrebuiltVisualOffset = null;
+Convar gCV_EnableStageRestart = null;
 
 Convar gCV_ForceTargetnameReset = null;
 Convar gCV_ResetTargetnameMain = null;
@@ -1090,9 +1091,7 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 	RecalcInsideZoneAll();
 
 	if (cache.iType == Zone_Stage && cache.iData == gI_HighestStage[cache.iTrack])
-	{
 		RecalcHighestStage();
-	}
 
 	if (cache.iType == Zone_Checkpoint && cache.iData == gI_HighestCheckpoint[cache.iTrack])
 		RecalcHighestCheckpoint();
@@ -1645,6 +1644,8 @@ bool CreateZoneTrigger(int zone)
 	{
 		SetEntProp(entity, Prop_Send, "m_usSolidFlags",
 			GetEntProp(entity, Prop_Send, "m_usSolidFlags") & ~(FSOLID_TRIGGER|FSOLID_NOT_SOLID));
+
+		EntityCollisionRulesChanged(entity);
 	}
 
 	TeleportEntity(entity, gV_ZoneCenter[zone], NULL_VECTOR, NULL_VECTOR);
@@ -1981,7 +1982,10 @@ public void OnClientCookiesCached(int client)
 
 		int p = 1;
 
-		for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+		// TODO: ZONETYPES_SIZE is too big now so we'll have to come back to do something about this...
+		//       Just make another cookie :pepega: or maybe store the settings in the DB rather than cookie.
+		//for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+		for (int type = Zone_Start; type <= Zone_Speedmod; type++)
 		{
 			for (int track = Track_Main; track <= Track_Bonus; track++)
 			{
@@ -3057,6 +3061,7 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 				| (1 << Zone_Airaccelerate)
 				| (1 << Zone_NoTimerGravity)
 				| (1 << Zone_Gravity)
+				| (1 << Zone_Speedmod)
 				// ZoneForm_trigger_teleport
 				, (1 << Zone_End)
 				| (1 << Zone_Checkpoint)
@@ -4433,6 +4438,7 @@ public bool TraceFilter_World(int entity, int contentsMask)
 	return (entity == 0);
 }
 
+// Sometimes our points aren't mins/maxs... sometimes old DB points... which is not good...
 void BoxPointsToMinsMaxs(float point1[3], float point2[3], float boxmin[3], float boxmax[3])
 {
 	for (int i = 0; i < 3; i++)
@@ -5056,10 +5062,20 @@ void InsertZone(int client)
 	GetTrackName(LANG_SERVER, c.iTrack, sTrack, sizeof(sTrack));
 	GetZoneName(LANG_SERVER, c.iType, sZoneName, sizeof(sZoneName));
 
-	// normalize zone points...
 	BoxPointsToMinsMaxs(c.fCorner1, c.fCorner2, c.fCorner1, c.fCorner2);
 
+	Reset(client);
+
+	if (!gCV_SQLZones.BoolValue)
+	{
+		c.sSource = "folder?";
+		c.iDatabaseID = GetTime();
+	}
+
 	Shavit_AddZone(c);
+
+	if (!gCV_SQLZones.BoolValue)
+		return;
 
 	if (c.iDatabaseID == -1) // insert
 	{
@@ -5460,6 +5476,10 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 	if (editaxis != -1)
 	{
+		// The is generated with https://gist.github.com/rtldg/94fa32b7abb064e0e99dfbf0c73c1cda
+		// The beam pairs array at the top of this function isn't useful for the order we want
+		// for drawing the editaxis beams so that gist was used to help figure out which
+		// beam indices go where, and then to make a fun little magic string out of it...
 		char magic[] = "\x01\x132\x02EWvF\x04\x15&77&2v\x15\x04\x10T\x13W\x02F7\x151u&\x04 d#g\x01E";
 
 		for (int j = 0; j < 12; j++)

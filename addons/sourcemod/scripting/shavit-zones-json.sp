@@ -55,6 +55,8 @@ static char gS_ZoneTypes[ZONETYPES_SIZE][18] = {
 	"notimergravity",
 	"gravity",
 	"speedmod",
+	"nojump",
+	"autobhop"
 };
 
 static char gS_ZoneForms[5][26] = {

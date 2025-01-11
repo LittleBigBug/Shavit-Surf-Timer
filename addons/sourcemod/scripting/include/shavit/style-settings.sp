@@ -548,7 +548,6 @@ float GetStyleSettingFloat(int style, char[] key)
 
 public any Native_HasStyleSetting(Handle handler, int numParams)
 {
-	// TODO: replace with sm 1.11 StringMap.ContainsKey
 	int style = GetNativeCell(1);
 
 	char sKey[SS_KEY_SZ];

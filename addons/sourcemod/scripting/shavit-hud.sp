@@ -69,9 +69,9 @@ UserMsg gI_TextMsg = view_as<UserMsg>(-1);
 
 // forwards
 Handle gH_Forwards_OnTopLeftHUD = null;
+Handle gH_Forwards_PreOnTopLeftHUD = null;
 Handle gH_Forwards_OnKeyHintHUD = null;
 Handle gH_Forwards_PreOnKeyHintHUD = null;
-Handle gH_Forwards_PreOnTopLeftHUD = null;
 Handle gH_Forwards_PreOnDrawCenterHUD = null;
 Handle gH_Forwards_PreOnDrawKeysHUD = null;
 
@@ -150,9 +150,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// forwards
 	gH_Forwards_OnTopLeftHUD = CreateGlobalForward("Shavit_OnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnKeyHintHUD = CreateGlobalForward("Shavit_OnKeyHintHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_PreOnKeyHintHUD = CreateGlobalForward("Shavit_PreOnKeyHintHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_PreOnTopLeftHUD = CreateGlobalForward("Shavit_PreOnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_PreOnTopLeftHUD = CreateGlobalForward("Shavit_PreOnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
+	gH_Forwards_OnKeyHintHUD = CreateGlobalForward("Shavit_OnKeyHintHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_PreOnKeyHintHUD = CreateGlobalForward("Shavit_PreOnKeyHintHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
 	gH_Forwards_PreOnDrawCenterHUD = CreateGlobalForward("Shavit_PreOnDrawCenterHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Array);
 	gH_Forwards_PreOnDrawKeysHUD = CreateGlobalForward("Shavit_PreOnDrawKeysHUD", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
@@ -2383,7 +2383,7 @@ void UpdateKeyHint(int client, bool force = false)
 
 	int track = 0;
 	int style = 0;
-	int stage;
+	int stage = 0;
 	float fTargetPB = 0.0;
 	float fTargetStagePB = 0.0;
 	bool bOnlyStageMode;
@@ -2405,7 +2405,16 @@ void UpdateKeyHint(int client, bool force = false)
 		bOnlyStageMode = Shavit_GetReplayBotStage(target) > 0;
 	}
 
+	style = (style == -1) ? 0 : style;
+	track = (track == -1) ? 0 : track;
+
+	if (!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
+	{
+		return;
+	}
+
 	Action aPreresult = Plugin_Continue;
+	bool forceUpdate = false;
 
 	Call_StartForward(gH_Forwards_PreOnKeyHintHUD);
 	Call_PushCell(client);
@@ -2415,6 +2424,7 @@ void UpdateKeyHint(int client, bool force = false)
 	Call_PushCell(track);
 	Call_PushCell(stage);
 	Call_PushCell(style);
+	Call_PushCellRef(forceUpdate);
 	Call_Finish(aPreresult);
 
 	if (aPreresult == Plugin_Handled || aPreresult == Plugin_Stop)
@@ -2422,7 +2432,7 @@ void UpdateKeyHint(int client, bool force = false)
 		return;
 	}
 
-	if((gI_HUDSettings[client] & HUD_OBSERVE) > 0)
+	if((gI_HUDSettings[client] & HUD_OBSERVE) > 0 || forceUpdate)
 	{
 		if((gI_HUDSettings[client] & HUD_MAPINFO) > 0)
 		{
@@ -2636,8 +2646,8 @@ void UpdateKeyHint(int client, bool force = false)
 
 		if ((gI_HUDSettings[client] & HUD_SPECTATORS) > 0 && (!(gI_HUDSettings[client] & HUD_SPECTATORSDEAD) || !IsPlayerAlive(client)))
 		{
-			int iSpectatorClients[MAXPLAYERS+1];
 			int iSpectators = 0;
+			int iSpectatorClients[MAXPLAYERS+1];
 			bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
 
 			for(int i = 1; i <= MaxClients; i++)

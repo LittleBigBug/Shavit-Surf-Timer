@@ -1394,7 +1394,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		{
 			int track = results.FetchInt(1);
 			float time = results.FetchFloat(2);
-			int jumps = results.FetchInt(3);
+			//int jumps = results.FetchInt(3); // todo; allow both bhop & surf to coexist
 			int rank = results.FetchInt(5);
 
 			if(gI_Track[client] < 2)

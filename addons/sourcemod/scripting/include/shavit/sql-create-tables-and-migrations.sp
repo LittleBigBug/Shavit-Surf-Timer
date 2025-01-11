@@ -718,7 +718,6 @@ void SQL_Migration_DeprecateExactTimeInt_Main(ArrayStack stack)
 		FormatEx(query, sizeof(query),
 			"UPDATE %splayertimes SET time = %.9f WHERE id = %d;",
 			gS_SQLPrefix, min_time, id);
-
 		AddQueryLog(trans, query);
 
 		// We do these queries/transactions in batches because AFAIR there is some SQL driver crash issue that likes to pop up with tons of queries... epic swag skibidi sigma rizz. Have you noticed that baby gronk (which was mid) has died out?

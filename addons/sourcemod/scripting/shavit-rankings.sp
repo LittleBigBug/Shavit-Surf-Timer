@@ -78,6 +78,7 @@ int gI_Driver = Driver_unknown;
 bool gB_Stats = false;
 bool gB_Late = false;
 bool gB_TierQueried = false;
+bool gB_MapStarted = false;
 
 int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
@@ -122,7 +123,6 @@ chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 float gF_MaxVelocity;
 
-bool gB_WorldRecordsCached = false;
 bool gB_WRHolderTablesMade = false;
 bool gB_WRHoldersRefreshed = false;
 bool gB_WRHoldersRefreshedTimer = false;
@@ -271,6 +271,8 @@ public void Shavit_OnDatabaseLoaded()
 		}
 	}
 
+	DbStuffPostMapStart();
+
 	QueryLog(gH_SQL, SQL_Version_Callback,
 		gI_Driver == Driver_sqlite
 		? "WITH p AS (SELECT COUNT(*) FROM pragma_function_list WHERE name = 'pow') SELECT sqlite_version(), * FROM p;"
@@ -291,7 +293,7 @@ public void Trans_RankingsSetupError(Database db, any data, int numQueries, cons
 
 public void Trans_RankingsSetupSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	OnMapStart();
+	DbStuffPostMapStart();
 }
 
 public void OnClientConnected(int client)
@@ -317,8 +319,13 @@ public void OnMapStart()
 {
 	GetLowercaseMapName(gS_Map);
 	Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount()); // just in case :)
+	gB_MapStarted = true;
+	DbStuffPostMapStart();
+}
 
-	if (gH_SQL == null)
+void DbStuffPostMapStart()
+{
+	if (gH_SQL == null || !gB_MapStarted)
 	{
 		return;
 	}
@@ -413,9 +420,9 @@ public void SQL_FillMapSettingCache_Callback(Database db, DBResultSet results, c
 public void OnMapEnd()
 {
 	gB_TierQueried = false;
+	gB_MapStarted = false;
 	gB_WRHoldersRefreshed = false;
 	gB_WRHoldersRefreshedTimer = false;
-	gB_WorldRecordsCached = false;
 }
 
 public void Shavit_OnWRDeleted(int style, int id, int track, int stage, int accountid, const char[] mapname)
@@ -434,11 +441,6 @@ public void Shavit_OnWRDeleted(int style, int id, int track, int stage, int acco
 	FormatEx(map, sizeof(map), "%s", mapname);
 
 	UpdateAllPoints(true, map, track, stage);
-}
-
-public void Shavit_OnWorldRecordsCached()
-{
-	gB_WorldRecordsCached = true;
 }
 
 public Action Timer_MVPs(Handle timer)
@@ -1702,25 +1704,32 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 
 bool DoWeHaveWindowFunctions(const char[] sVersion)
 {
-	float fVersion = StringToFloat(sVersion);
+	char buf[100][2];
+	ExplodeString(sVersion, ".", buf, 2, 100);
+	int iMajor = StringToInt(buf[0]);
+	int iMinor = StringToInt(buf[1]);
 
 	if (gI_Driver == Driver_sqlite)
 	{
-		return fVersion >= 3.25; // 2018~
+		// 2018~
+		return iMajor > 3 || (iMajor == 3 && iMinor >= 25); // 2018~
 	}
 	else if (gI_Driver == Driver_pgsql)
 	{
-		return fVersion >= 8.4; // 2009~
+		// 2009~
+		return iMajor > 8 || (iMajor == 8 && iMinor >= 4);
 	}
 	else if (gI_Driver == Driver_mysql)
 	{
 		if (StrContains(sVersion, "MariaDB") != -1)
 		{
-			return fVersion >= 10.2; // 2016~
+			 // 2016~
+			return iMajor > 10 || (iMajor == 10 && iMinor >= 2);
 		}
 		else
 		{
-			return fVersion >= 8.0; // 2018~
+			// 2018~
+			return iMajor > 8 || (iMajor == 8 && iMinor >= 0);
 		}
 	}
 

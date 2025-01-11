@@ -30,7 +30,7 @@ enum
 {
 	Zone_Start, 			// starts timer
 	Zone_End, 				// stops timer
-	Zone_Stage,				// as a start zone in stageed map
+	Zone_Stage,				// as a start zone in staged map
 	Zone_Checkpoint,		// shows time when entering zone	
 	Zone_Autobhop,			// forces autobhop for the player
 	Zone_NoJump,			// blocks the player from jumping while inside the zone	
@@ -54,8 +54,8 @@ enum
 {
 	ZF_ForceRender = (1 << 0),
 	ZF_Hammerid    = (1 << 1), // used by ZoneForm_{trigger_{multiple, teleport}, func_button} sometimes
-	ZF_Solid       = (1 << 2), // forces the zone to block people...
-	ZF_DrawAsBox   = (1 << 3), // Draw trigger_multiple as box	
+	ZF_Solid       = (1 << 2), // forces the zone to physically block people...
+	ZF_DrawAsBox   = (1 << 3), // Draw trigger_multiple as box
 	ZF_Origin      = (1 << 4), // sTarget is the entity's origin formatted as "%X %X %X"
 };
 

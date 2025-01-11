@@ -96,11 +96,11 @@ stock void UnpackSignedShorts(int x, int[] out)
 	out[1] = (((x >> 16) & 0xFFFF) ^ 0x8000) - 0x8000;
 }
 
-stock bool LoadReplayCache(frame_cache_t cache, int style, int track, int stage, const char[] path, const char[] mapname)
+stock bool LoadReplayCache(frame_cache_t cache, int style, int track, const char[] path, const char[] mapname)
 {
 	bool success = false;
 	replay_header_t header;
-	File fFile = ReadReplayHeader(path, header, style, track, stage);
+	File fFile = ReadReplayHeader(path, header, style, track);
 
 	if (fFile != null)
 	{
@@ -228,7 +228,7 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 	return true;
 }
 
-stock File ReadReplayHeader(const char[] path, replay_header_t header, int style = 0, int track = 0, int stage = 0)
+stock File ReadReplayHeader(const char[] path, replay_header_t header, int style = 0, int track = 0)
 {
 	replay_header_t empty_header;
 	header = empty_header;

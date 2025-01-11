@@ -6,7 +6,9 @@
 # editors
 *.atom-build.json
 .vscode/tasks.json
-
 \.vscode/settings\.json
+.idea/
 
+# build output & secrets
 builds/
+.env

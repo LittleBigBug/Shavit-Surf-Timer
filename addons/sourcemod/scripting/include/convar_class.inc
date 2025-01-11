@@ -60,7 +60,7 @@ enum struct convar_t
 methodmap Convar < ConVar
 {
 	public Convar(const char[] name, const char[] defaultValue, const char[] description = "",
-					 int flags = 0, bool hasMin = false, float min = 0.0, bool hasMax = false, float max = 0.0, convar_t convar = {})
+					 int flags = 0, bool hasMin = false, float min = 0.0, bool hasMax = false, float max = 0.0)
 	{
 		if(_ConvarList == null)
 		{
@@ -78,8 +78,6 @@ methodmap Convar < ConVar
 		// Can't set default values :T
 		savedValue.SetMin(hasMin, min);
 		savedValue.SetMax(hasMax, max);
-
-		convar = savedValue;
 
 		_ConvarList.PushArray(savedValue);
 

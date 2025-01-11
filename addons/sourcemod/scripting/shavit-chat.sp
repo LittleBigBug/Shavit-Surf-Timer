@@ -175,7 +175,15 @@ public void OnPluginStart()
 
 	gSM_Messages = new StringMap();
 	gB_Protobuf = (GetUserMessageType() == UM_Protobuf);
-	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
+
+	if (gB_Protobuf)
+	{
+		HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2_ProtoBuf, true);
+	}
+	else
+	{
+		HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2_BfRead, true);
+	}
 
 	gH_ChatCookie = RegClientCookie("shavit_chat_selection", "Chat settings", CookieAccess_Protected);
 	gA_ChatRanks = new ArrayList(sizeof(chatranks_cache_t));
@@ -408,7 +416,7 @@ void ReplaceFormats(char[] formatting, int maxlen, char[] name, char[] colon, ch
 	ReplaceString(formatting, maxlen, "{msg}", text);
 }
 
-public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int playersNum, bool reliable, bool init)
+public Action Hook_SayText2_ProtoBuf(UserMsg msg_id, Protobuf msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	if (!gCV_Enabled.BoolValue)
 	{
@@ -420,24 +428,37 @@ public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int
 	char sOriginalName[MAXLENGTH_NAME];
 	char sOriginalText[MAXLENGTH_TEXT];
 
-	if(gB_Protobuf)
+	client = msg.ReadInt("ent_idx");
+	msg.ReadString("msg_name", sMessage, 32);
+	msg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
+	msg.ReadString("params", sOriginalText, MAXLENGTH_TEXT, 1);
+
+	return Hook_SayText2(client, sMessage, sOriginalName, sOriginalText);
+}
+
+public Action Hook_SayText2_BfRead(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
+{
+	if (!gCV_Enabled.BoolValue)
 	{
-		Protobuf pbmsg = UserMessageToProtobuf(msg);
-		client = pbmsg.ReadInt("ent_idx");
-		pbmsg.ReadString("msg_name", sMessage, 32);
-		pbmsg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
-		pbmsg.ReadString("params", sOriginalText, MAXLENGTH_TEXT, 1);
-	}
-	else
-	{
-		BfRead bfmsg = UserMessageToBfRead(msg);
-		client = bfmsg.ReadByte();
-		bfmsg.ReadByte(); // chat parameter
-		bfmsg.ReadString(sMessage, 32);
-		bfmsg.ReadString(sOriginalName, MAXLENGTH_NAME);
-		bfmsg.ReadString(sOriginalText, MAXLENGTH_TEXT);
+		return Plugin_Continue;
 	}
 
+	int client = 0;
+	char sMessage[32];
+	char sOriginalName[MAXLENGTH_NAME];
+	char sOriginalText[MAXLENGTH_TEXT];
+
+	client = msg.ReadByte();
+	msg.ReadByte(); // chat parameter
+	msg.ReadString(sMessage, 32);
+	msg.ReadString(sOriginalName, MAXLENGTH_NAME);
+	msg.ReadString(sOriginalText, MAXLENGTH_TEXT);
+
+	return Hook_SayText2(client, sMessage, sOriginalName, sOriginalText);
+}
+
+Action Hook_SayText2(int client, char sMessage[32], char sOriginalName[MAXLENGTH_NAME], char sOriginalText[MAXLENGTH_TEXT])
+{
 	if(client == 0)
 	{
 		return Plugin_Continue;

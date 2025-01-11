@@ -476,7 +476,14 @@ public void OnPluginStart()
 	HookEvent("player_activate", BotEventsStopLogSpam, EventHookMode_Pre);
 
 	// name change suppression
-	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
+	if (GetUserMessageType() == UM_Protobuf)
+	{
+		HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2_ProtoBuf, true);
+	}
+	else
+	{
+		HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2_BfRead, true);
+	}
 
 	// to disable replay client updates until next map so the server doesn't crash :)
 	AddCommandListener(CommandListener_changelevel, "changelevel");
@@ -2977,36 +2984,35 @@ public Action BotEventsStopLogSpam(Event event, const char[] name, bool dontBroa
 	return Plugin_Continue;
 }
 
-public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int playersNum, bool reliable, bool init)
-{
+public Action Hook_SayText2_ProtoBuf(UserMsg msg_id, Protobuf msg, const int[] players, int playersNum, bool reliable, bool init) {
 	if(!gB_HideNameChange || !gCV_Enabled.BoolValue)
 	{
 		return Plugin_Continue;
 	}
 
-	// caching usermessage type rather than call it every time
-	static UserMessageType um = view_as<UserMessageType>(-1);
+	char sMessage[24];
+	msg.ReadString("msg_name", sMessage, 24);
 
-	if(um == view_as<UserMessageType>(-1))
+	return Hook_SayText2(sMessage);
+}
+
+public Action Hook_SayText2_BfRead(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init) {
+	if(!gB_HideNameChange || !gCV_Enabled.BoolValue)
 	{
-		um = GetUserMessageType();
+		return Plugin_Continue;
 	}
 
 	char sMessage[24];
 
-	if(um == UM_Protobuf)
-	{
-		Protobuf pbmsg = msg;
-		pbmsg.ReadString("msg_name", sMessage, 24);
-	}
-	else
-	{
-		BfRead bfmsg = msg;
-		bfmsg.ReadByte();
-		bfmsg.ReadByte();
-		bfmsg.ReadString(sMessage, 24);
-	}
+	msg.ReadByte();
+	msg.ReadByte();
+	msg.ReadString(sMessage, 24);
 
+	return Hook_SayText2(sMessage);
+}
+
+Action Hook_SayText2(char sMessage[24])
+{
 	if(StrEqual(sMessage, "#Cstrike_Name_Change") || StrEqual(sMessage, "#TF_Name_Change"))
 	{
 		gB_HideNameChange = false;

@@ -1114,49 +1114,47 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 	iStageCompletions = iStageCompletions < iStages ? iStageCompletions : iStages;
 	iStageWRs = iStageWRs < iStages ? iStageWRs : iStages;
 
-	if (1 & 1) // :upside_down_smiley_face:
-	{
-		char sRankingString[64];
+	char sRankingString[64];
 
-		if(gB_Rankings)
+	if(gB_Rankings)
+	{
+		if (iRank > 0 && fPoints > 0.0)
 		{
-			if (iRank > 0 && fPoints > 0.0)
-			{
-				FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.2f", "Rank", client, iRank, Shavit_GetRankedPlayers(), "Points", client, fPoints);
-			}
-			else
-			{
-				FormatEx(sRankingString, 64, "\n%T: %T", "Rank", client, "PointsUnranked", client);
-			}
+			FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.2f", "Rank", client, iRank, Shavit_GetRankedPlayers(), "Points", client, fPoints);
+		}
+		else
+		{
+			FormatEx(sRankingString, 64, "\n%T: %T", "Rank", client, "PointsUnranked", client);
+		}
+	}
+
+	Menu menu = new Menu(MenuHandler_ProfileHandler);
+	menu.SetTitle("%s's %T. [U:1:%u]\n%T: %s\n%s\n%s\n%T: %s\n",
+		gS_TargetName[client], "Profile", client, gI_TargetSteamID[client], "Country", client, sCountry, sLastLogin,
+		sRankingString, "Playtime", client, sPlaytime);
+
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = styles[i];
+
+		if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_GetStyleSettingInt(iStyle, "enabled") <= 0)
+		{
+			continue;
 		}
 
-		Menu menu = new Menu(MenuHandler_ProfileHandler);
-		menu.SetTitle("%s's %T. [U:1:%u]\n%T: %s\n%s\n%s\n%T: %s\n",
-			gS_TargetName[client], "Profile", client, gI_TargetSteamID[client], "Country", client, sCountry, sLastLogin,
-			sRankingString, "Playtime", client, sPlaytime);
+		char sInfo[4];
+		IntToString(iStyle, sInfo, 4);
 
-		int[] styles = new int[gI_Styles];
-		Shavit_GetOrderedStyles(styles, gI_Styles);
+		char sStyleInfo[256];
 
-		for(int i = 0; i < gI_Styles; i++)
+		if (iStyle == gI_Style[client])
 		{
-			int iStyle = styles[i];
-
-			if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_GetStyleSettingInt(iStyle, "enabled") <= 0)
-			{
-				continue;
-			}
-
-			char sInfo[4];
-			IntToString(iStyle, sInfo, 4);
-
-			char sStyleInfo[256];
-
-			if (iStyle == gI_Style[client])
-			{
-				char sMain[32]; char sBonus[32];
-				GetTrackName(client, Track_Main, sMain, 32);
-				GetTrackName(client, Track_Bonus, sBonus, 32, false);
+			char sMain[32]; char sBonus[32];
+			GetTrackName(client, Track_Main, sMain, 32);
+			GetTrackName(client, Track_Bonus, sBonus, 32, false);
 
 				FormatEx(sStyleInfo, sizeof(sStyleInfo),
 					"%s\n"...
@@ -1186,23 +1184,22 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 				FormatEx(sStyleInfo, sizeof(sStyleInfo), "%s\n", gS_StyleStrings[iStyle].sStyleName);
 			}
 
-			menu.AddItem(sInfo, sStyleInfo);
-		}
-
-		// should NEVER happen
-		if(menu.ItemCount == 0)
-		{
-			char sMenuItem[64];
-			FormatEx(sMenuItem, 64, "%T", "NoRecords", client);
-			menu.AddItem("-1", sMenuItem);
-		}
-		
-		menu.Pagination = 5;
-		menu.ExitButton = true;
-		menu.DisplayAt(client, item, MENU_TIME_FOREVER);
-
-		Shavit_PrintSteamIDOnce(client, gI_TargetSteamID[client], gS_TargetName[client]);
+		menu.AddItem(sInfo, sStyleInfo);
 	}
+
+	// should NEVER happen
+	if(menu.ItemCount == 0)
+	{
+		char sMenuItem[64];
+		FormatEx(sMenuItem, 64, "%T", "NoRecords", client);
+		menu.AddItem("-1", sMenuItem);
+	}
+
+	menu.Pagination = 5;
+	menu.ExitButton = true;
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
+
+	Shavit_PrintSteamIDOnce(client, gI_TargetSteamID[client], gS_TargetName[client]);
 }
 
 public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, int param2)
